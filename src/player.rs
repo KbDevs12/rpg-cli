@@ -46,7 +46,7 @@ impl Player {
     }
 
     pub fn gain_exp(&mut self, amount: u32) -> u32 {
-        if self.level == MAX_LEVEL {
+        if self.level >= MAX_LEVEL {
             return 0;
         }
 
@@ -56,7 +56,7 @@ impl Player {
         while self.level < MAX_LEVEL && self.exp >= self.exp_to_next() {
             self.exp -= self.exp_to_next();
             self.level += 1;
-            level_gained = 1;
+            level_gained += 1;
         }
 
         if self.level >= MAX_LEVEL {
@@ -77,5 +77,14 @@ mod tests {
         assert_eq!(p.gain_exp(100), 1);
         assert_eq!(p.level, 2);
         assert_eq!(p.exp, 0);
+    }
+
+    #[test]
+    fn naik_level_sekaligus() {
+        let mut p = Player::new("Budi");
+        // 1 ke 2 kan butuh 100 exp berarti ke 3 itu butuh 150 totalnya jadi 250
+        assert_eq!(p.gain_exp(260), 2);
+        assert_eq!(p.level, 3);
+        assert_eq!(p.exp, 10);
     }
 }
