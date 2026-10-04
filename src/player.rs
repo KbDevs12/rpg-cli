@@ -87,4 +87,20 @@ mod tests {
         assert_eq!(p.level, 3);
         assert_eq!(p.exp, 10);
     }
+
+    #[test]
+    fn level_tidak_lebih_dari_100() {
+        let mut p = Player::new("Budi");
+        p.gain_exp(u32::MAX / 2);
+        assert_eq!(p.level, MAX_LEVEL);
+        assert_eq!(p.rank(), Rank::Hero);
+    }
+
+    #[test]
+    fn rank_sesuai_level() {
+        assert_eq!(Rank::from_level(1), Rank::Bronze);
+        assert_eq!(Rank::from_level(25), Rank::Gold);
+        assert_eq!(Rank::from_level(50), Rank::Platinum);
+        assert_eq!(Rank::from_level(100), Rank::Hero);
+    }
 }
