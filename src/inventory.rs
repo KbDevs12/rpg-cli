@@ -7,6 +7,8 @@ pub enum Item {
     ManaPotion,
     IronSword,
     WoodenShield,
+    Elixir,
+    Bread,
 }
 
 impl Item {
@@ -16,6 +18,8 @@ impl Item {
             Item::ManaPotion => "Mana Potion",
             Item::IronSword => "Iron Sword",
             Item::WoodenShield => "Iron Shield",
+            Item::Elixir => "Elixir",
+            Item::Bread => "Bread",
         }
     }
 
@@ -25,11 +29,20 @@ impl Item {
             Item::ManaPotion => 60,
             Item::IronSword => 300,
             Item::WoodenShield => 150,
+            Item::Elixir => 100,
+            Item::Bread => 25,
         }
     }
 
     pub fn sell_price(&self) -> u32 {
         self.price() / 2
+    }
+
+    pub fn is_usable(&self) -> bool {
+        matches!(
+            self,
+            Item::HealthPotion | Item::ManaPotion | Item::Elixir | Item::Bread
+        )
     }
 }
 
