@@ -66,3 +66,16 @@ impl Player {
         level_gained
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn naik_level_satu_kali() {
+        let mut p = Player::new("Budi");
+        assert_eq!(p.gain_exp(100), 1);
+        assert_eq!(p.level, 2);
+        assert_eq!(p.exp, 0);
+    }
+}
