@@ -18,3 +18,22 @@ impl Rank {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct Player {
+    pub name: String,
+    pub level: u32,
+    pub exp: u32,
+    pub gold: u32,
+}
+
+impl Player {
+    pub fn new(name: &str) -> Self {
+        Player {
+            name: name.to_string(),
+            level: 1,
+            exp: 0,
+            gold: 0,
+        }
+    }
+}
