@@ -1,3 +1,5 @@
+use crate::inventory::Inventory;
+
 pub const MAX_LEVEL: u32 = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +27,7 @@ pub struct Player {
     pub level: u32,
     pub exp: u32,
     pub gold: u32,
+    pub inventory: Inventory,
 }
 
 impl Player {
@@ -34,6 +37,7 @@ impl Player {
             level: 1,
             exp: 0,
             gold: 0,
+            inventory: Inventory::new(),
         }
     }
 
