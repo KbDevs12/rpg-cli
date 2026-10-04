@@ -1,5 +1,6 @@
 mod inventory;
 mod player;
+mod statistic;
 
 use inventory::Item;
 use player::Player;

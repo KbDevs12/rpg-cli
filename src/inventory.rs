@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 use std::fmt;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Effect {
+    Heal(u32),
+    RestoreMana(u32),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
     HealthPotion,
@@ -23,6 +29,15 @@ impl Item {
         }
     }
 
+    pub fn effect(&self) -> Option<Effect> {
+        match self {
+            Item::HealthPotion => Some(Effect::Heal(50)),
+            Item::Bread => Some(Effect::Heal(25)),
+            Item::Elixir => Some(Effect::RestoreMana(50)),
+            _ => None,
+        }
+    }
+
     pub fn price(&self) -> u32 {
         match self {
             Item::HealthPotion => 50,
@@ -39,10 +54,7 @@ impl Item {
     }
 
     pub fn is_usable(&self) -> bool {
-        matches!(
-            self,
-            Item::HealthPotion | Item::ManaPotion | Item::Elixir | Item::Bread
-        )
+        self.effect().is_some()
     }
 }
 
@@ -65,7 +77,7 @@ impl fmt::Display for InventoryError {
             InventoryError::NotEnoughItem { item, needed, have } => {
                 write!(
                     f,
-                    "{} kurang bro, butuh {needed} padahal lu cuma ada  {have}",
+                    "{} kurang bro, butuh {needed} padahal lu cuma ada {have}",
                     item.name()
                 )
             }
