@@ -26,7 +26,6 @@ pub struct Player {
     pub name: String,
     pub level: u32,
     pub exp: u32,
-    pub gold: u32,
     pub inventory: Inventory,
 }
 
@@ -36,7 +35,6 @@ impl Player {
             name: name.to_string(),
             level: 1,
             exp: 0,
-            gold: 0,
             inventory: Inventory::new(),
         }
     }
