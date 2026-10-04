@@ -7,6 +7,8 @@ pub struct Stat {
     pub hp: u32,
     pub max_mana: u32,
     pub mana: u32,
+    pub attack: u32,
+    pub defense: u32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -32,6 +34,8 @@ impl Stat {
             hp: 100,
             max_mana: 100,
             mana: 100,
+            attack: 10,
+            defense: 5,
         }
     }
 
@@ -39,6 +43,8 @@ impl Stat {
         let level = level.clamp(1, MAX_LEVEL);
         self.max_hp = 100 + (level - 1) * 10;
         self.max_mana = 100 + (level - 1) * 10;
+        self.attack = 10 + (level - 1) * 2;
+        self.defense = 5 + (level - 1);
 
         self.hp = self.max_hp;
         self.mana = self.max_mana;
