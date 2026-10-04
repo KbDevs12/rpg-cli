@@ -1,3 +1,4 @@
+mod inventory;
 mod player;
 
 use player::Player;
