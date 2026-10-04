@@ -1,9 +1,5 @@
-mod inventory;
-mod player;
-mod statistic;
+use rpg_cli::{inventory::Item, player::Player};
 
-use inventory::Item;
-use player::Player;
 fn main() {
     let mut p = Player::new("Adit");
     let naik = p.gain_exp(120);
