@@ -1,4 +1,4 @@
-use crate::{inventory::Item, player::MAX_LEVEL};
+use crate::player::MAX_LEVEL;
 use std::fmt;
 
 #[derive(Debug)]
