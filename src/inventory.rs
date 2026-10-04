@@ -59,3 +59,92 @@ impl fmt::Display for InventoryError {
         }
     }
 }
+
+#[derive(Debug, Default)]
+pub struct Inventory {
+    gold: u32,
+    items: HashMap<Item, u32>,
+}
+
+impl Inventory {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn gold(&self) -> u32 {
+        self.gold
+    }
+
+    pub fn add_gold(&mut self, amount: u32) {
+        self.gold = self.gold.saturating_add(amount);
+    }
+
+    pub fn spend_gold(&mut self, amount: u32) -> Result<(), InventoryError> {
+        if self.gold < amount {
+            return Err(InventoryError::NotEnoughGold {
+                needed: amount,
+                have: self.gold,
+            });
+        }
+        self.gold -= amount;
+        Ok(())
+    }
+
+    pub fn count(&self, item: Item) -> u32 {
+        self.items.get(&item).copied().unwrap_or(0)
+    }
+
+    pub fn add_item(&mut self, item: Item, qty: u32) {
+        *self.items.entry(item).or_insert(0) += qty
+    }
+
+    pub fn remove_item(&mut self, item: Item, qty: u32) -> Result<(), InventoryError> {
+        let have = self.count(item);
+
+        if have < qty {
+            return Err(InventoryError::NotEnoughItem {
+                item,
+                needed: qty,
+                have,
+            });
+        }
+
+        let left = have - qty;
+        if left == 0 {
+            self.items.remove(&item);
+        } else {
+            self.items.insert(item, left);
+        }
+
+        Ok(())
+    }
+
+    pub fn buy(&mut self, item: Item, qty: u32) -> Result<(), InventoryError> {
+        self.spend_gold(item.price().saturating_mul(qty))?;
+        self.add_item(item, qty);
+        Ok(())
+    }
+
+    pub fn sell(&mut self, item: Item, qty: u32) -> Result<(), InventoryError> {
+        self.remove_item(item, qty)?;
+        self.add_gold(item.sell_price() * qty);
+        Ok(())
+    }
+
+    pub fn list(&self) -> Vec<(Item, u32)> {
+        let mut v: Vec<(Item, u32)> = self.items.iter().map(|(i, q)| (*i, *q)).collect();
+        v.sort_by_key(|(item, _)| item.name());
+        v
+    }
+
+    pub fn display(&self) {
+        println!("=== Inventory ===");
+        println!("Gold: {}", self.gold);
+        if self.items.is_empty() {
+            println!("(tidak ada item)");
+        }
+        for (item, qty) in self.list() {
+            println!("- {} x{}", item.name(), qty);
+        }
+    }
+}
