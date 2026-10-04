@@ -36,4 +36,33 @@ impl Player {
             gold: 0,
         }
     }
+
+    pub fn exp_to_next(&self) -> u32 {
+        100 + (self.level - 1) * 50
+    }
+
+    pub fn rank(&self) -> Rank {
+        Rank::from_level(self.level)
+    }
+
+    pub fn gain_exp(&mut self, amount: u32) -> u32 {
+        if self.level == MAX_LEVEL {
+            return 0;
+        }
+
+        self.exp += amount;
+        let mut level_gained = 0;
+
+        while self.level < MAX_LEVEL && self.exp >= self.exp_to_next() {
+            self.exp -= self.exp_to_next();
+            self.level += 1;
+            level_gained = 1;
+        }
+
+        if self.level >= MAX_LEVEL {
+            self.exp = 0;
+        }
+
+        level_gained
+    }
 }
