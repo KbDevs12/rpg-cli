@@ -51,12 +51,20 @@ pub fn apply_defeat(player: &mut Player) {
     player.statistic.hp = player.statistic.max_hp;
 }
 
+fn flush_log(log: &mut Vec<String>) {
+    for line in log.drain(..) {
+        println!("{line}");
+    }
+}
+
 pub fn run(player: &mut Player, mut monster: Monster) -> Outcome {
     let mut rng = rand::rng();
-    println!("\n*** Muncul {}! ***", monster.name);
+    let mut log: Vec<String> = vec![format!("*** Muncul {}! ***", monster.name)];
 
     loop {
+        ui::clear();
         ui::battle_status(player, &monster);
+        flush_log(&mut log);
         println!(
             "1. Serang   2. Health Potion (x{})   3. Kabur",
             player.inventory.count(Item::HealthPotion)
@@ -66,15 +74,16 @@ pub fn run(player: &mut Player, mut monster: Monster) -> Outcome {
             "1" => {
                 let roll = rng.random_range(-MAX_ROLL_PCT..=MAX_ROLL_PCT);
                 let dmg = player_attack(player, &mut monster, roll);
-                println!(
+                ui::animate_attack("Kamu", monster.name, true);
+                log.push(format!(
                     "Kamu menyerang pakai {}, {dmg} damage!",
                     player.equipment.weapon_name()
-                );
+                ));
             }
             "2" => match player.use_item(Item::HealthPotion, 1) {
-                Ok(msg) => println!("{msg}"),
+                Ok(msg) => log.push(msg),
                 Err(e) => {
-                    println!("{e}");
+                    log.push(e);
                     continue; // gagal = tidak memakan giliran
                 }
             },
@@ -83,15 +92,16 @@ pub fn run(player: &mut Player, mut monster: Monster) -> Outcome {
                     println!("Berhasil kabur!");
                     return Outcome::Fled;
                 }
-                println!("Gagal kabur!");
+                log.push("Gagal kabur!".to_string());
             }
             _ => {
-                println!("Pilihan tidak valid.");
+                log.push("Pilihan tidak valid.".to_string());
                 continue;
             }
         }
 
         if !monster.is_alive() {
+            flush_log(&mut log);
             let (exp, gold) = (monster.exp_reward, monster.gold_reward);
             let levels_gained = give_reward(player, &monster);
             println!("{} kalah! +{exp} exp, +{gold} gold", monster.name);
@@ -107,9 +117,11 @@ pub fn run(player: &mut Player, mut monster: Monster) -> Outcome {
 
         let roll = rng.random_range(-MAX_ROLL_PCT..=MAX_ROLL_PCT);
         let dmg = monster_attack(&monster, player, roll);
-        println!("{} menyerang, {dmg} damage!", monster.name);
+        ui::animate_attack("Kamu", monster.name, false);
+        log.push(format!("{} menyerang, {dmg} damage!", monster.name));
 
         if !player.statistic.is_alive() {
+            flush_log(&mut log);
             apply_defeat(player);
             println!("Kamu kalah... gold berkurang setengah.");
             return Outcome::Lost;

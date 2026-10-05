@@ -1,8 +1,22 @@
 use std::io::{self, Write};
+use std::{thread, time::Duration};
 
 use crate::inventory::Inventory;
 use crate::monster::Monster;
 use crate::player::{MAX_LEVEL, Player};
+
+const TRACK: usize = 20;
+
+pub fn clear() {
+    print!("\x1B[2J\x1B[H");
+    io::stdout().flush().unwrap();
+}
+
+pub fn pause() {
+    println!("\n[Enter untuk lanjut]");
+    let mut s = String::new();
+    let _ = io::stdin().read_line(&mut s);
+}
 
 pub fn read_input() -> String {
     print!("> ");
@@ -69,9 +83,10 @@ pub fn show_menu(p: &Player) {
             ),
             format!("Gold: {}", p.inventory.gold()),
             String::new(),
-            "1. Berburu      4. Equipment".to_string(),
-            "2. Profil       5. Toko".to_string(),
-            "3. Inventory    6. Simpan & keluar".to_string(),
+            "1. Berburu      5. Toko".to_string(),
+            "2. Profil       6. Ganti Karakter".to_string(),
+            "3. Inventory    7. Simpan & Keluar".to_string(),
+            "4. Equipment".to_string(),
         ],
     );
 }
@@ -124,6 +139,24 @@ pub fn show_profile(p: &Player) {
             format!("Gold   : {}", p.inventory.gold()),
         ],
     );
+}
+
+pub fn animate_attack(left: &str, right: &str, to_right: bool) {
+    let proj = if to_right { '>' } else { '<' };
+
+    for step in 0..=TRACK {
+        let pos = if to_right { step } else { TRACK - step };
+        let field = format!("{}{}{}", " ".repeat(pos), proj, " ".repeat(TRACK - pos));
+        print!("\r{:<8}[{}] {:>8}", left, field, right);
+        io::stdout().flush().unwrap();
+        thread::sleep(Duration::from_millis(30));
+    }
+
+    let width = TRACK + 1;
+    print!("\r{:<8}[{:^width$}] {:>8}", left, "** HIT **", right);
+    io::stdout().flush().unwrap();
+    thread::sleep(Duration::from_millis(250));
+    println!();
 }
 
 pub fn show_inventory(inv: &Inventory) {

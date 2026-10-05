@@ -9,62 +9,159 @@ use rpg_cli::{
     ui,
 };
 
+const MAX_NAME_LEN: usize = 16;
+
+enum Next {
+    Switch,
+    Quit,
+}
+
 fn main() {
     let mut db = Db::open("rpg.db").expect("gagal membuka database");
 
-    ui::show_title();
-    println!("Nama karakter:");
-    let name = ui::read_input();
-    if name.is_empty() {
-        println!("Nama ga boleh kosong.");
-        return;
-    }
-
-    let mut player = match db.load_player(&name) {
-        Ok(Some(p)) => {
-            println!("Selamat datang kembali, {}!", p.name);
-            p
-        }
-        Ok(None) => {
-            println!("Karakter baru dibuat: {name}");
-            let mut p = Player::new(&name);
-            p.inventory.add_item(Item::HealthPotion, 3);
-            p
-        }
-        Err(e) => {
-            println!("Gagal load data: {e}");
-            return;
-        }
-    };
-
-    let mut rng = rand::rng();
-
-    loop {
-        ui::show_menu(&player);
-        match ui::read_input().as_str() {
-            "1" => {
-                let list = MonsterKind::candidates(player.level);
-                let kind = list[rng.random_range(0..list.len())];
-                battle::run(&mut player, Monster::new(kind));
-                save(&mut db, &player); // autosave setelah battle
-            }
-            "2" => ui::show_profile(&player),
-            "3" => inventory_menu(&mut player, &mut db),
-            "4" => equipment_menu(&mut player, &mut db),
-            "5" => shop_menu(&mut player, &mut db),
-            "6" => {
-                save(&mut db, &player);
-                println!("Data tersimpan. Sampai jumpa!");
-                break;
-            }
-            _ => println!("Pilihan tidak valid."),
+    while let Some(mut player) = select_player(&mut db) {
+        match game_loop(&mut player, &mut db) {
+            Next::Switch => {}
+            Next::Quit => break,
         }
     }
+    println!("Sampai jumpa!");
 }
 
 fn save(db: &mut Db, player: &Player) {
     if let Err(e) = db.save_player(player) {
         println!("Gagal menyimpan: {e}");
+    }
+}
+
+fn select_player(db: &mut Db) -> Option<Player> {
+    loop {
+        ui::clear();
+        ui::show_title();
+
+        let saved = match db.list_players() {
+            Ok(v) => v,
+            Err(e) => {
+                println!("Gagal baca data: {e}");
+                return None;
+            }
+        };
+
+        let mut lines: Vec<String> = saved
+            .iter()
+            .enumerate()
+            .map(|(i, (name, level))| format!("{}. {} (Lv {})", i + 1, name, level))
+            .collect();
+        if saved.is_empty() {
+            lines.push("(belum ada karakter)".to_string());
+        }
+        lines.push(String::new());
+        lines.push("n. Karakter baru   q. Keluar".to_string());
+        ui::boxed("PILIH KARAKTER", &lines);
+
+        let input = ui::read_input();
+        match input.as_str() {
+            "q" => return None,
+            "n" => {
+                if let Some(p) = create_player(db) {
+                    return Some(p);
+                }
+            }
+            other => {
+                let choice = other
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|n| (1..=saved.len()).contains(n));
+                let Some(n) = choice else {
+                    println!("Pilihan tidak valid.");
+                    ui::pause();
+                    continue;
+                };
+
+                match db.load_player(&saved[n - 1].0) {
+                    Ok(Some(p)) => return Some(p),
+                    Ok(None) => {
+                        println!("Data karakter ga ketemu.");
+                        ui::pause();
+                    }
+                    Err(e) => {
+                        println!("Gagal load data: {e}");
+                        ui::pause();
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn create_player(db: &mut Db) -> Option<Player> {
+    println!("Nama karakter baru (kosong = batal):");
+    let name = ui::read_input();
+    if name.is_empty() {
+        return None;
+    }
+    if name.chars().count() > MAX_NAME_LEN {
+        println!("Nama maksimal {MAX_NAME_LEN} karakter.");
+        ui::pause();
+        return None;
+    }
+
+    match db.load_player(&name) {
+        Ok(Some(_)) => {
+            println!("Nama '{name}' sudah dipakai karakter lain.");
+            ui::pause();
+            return None;
+        }
+        Ok(None) => {}
+        Err(e) => {
+            println!("Gagal cek nama: {e}");
+            ui::pause();
+            return None;
+        }
+    }
+
+    let mut p = Player::new(&name);
+    p.inventory.add_item(Item::HealthPotion, 3);
+    save(db, &p);
+    Some(p)
+}
+
+fn game_loop(player: &mut Player, db: &mut Db) -> Next {
+    let mut rng = rand::rng();
+
+    loop {
+        ui::clear();
+        ui::show_menu(player);
+
+        match ui::read_input().as_str() {
+            "1" => {
+                let list = MonsterKind::candidates(player.level);
+                let kind = list[rng.random_range(0..list.len())];
+                battle::run(player, Monster::new(kind));
+                save(db, player); // autosave setelah battle
+                ui::pause();
+            }
+            "2" => {
+                ui::show_profile(player);
+                ui::pause();
+            }
+            "3" => inventory_menu(player, db),
+            "4" => equipment_menu(player, db),
+            "5" => shop_menu(player, db),
+            "6" => {
+                save(db, player);
+                return Next::Switch;
+            }
+            "7" => {
+                save(db, player);
+                println!("Data tersimpan.");
+                return Next::Quit;
+            }
+            _ => {
+                println!("Pilihan tidak valid.");
+                ui::pause();
+            }
+        }
     }
 }
 
@@ -82,6 +179,7 @@ fn read_qty() -> Option<u32> {
 }
 
 fn inventory_menu(player: &mut Player, db: &mut Db) {
+    ui::clear();
     ui::show_inventory(&player.inventory);
 
     let usable: Vec<Item> = player
@@ -92,6 +190,7 @@ fn inventory_menu(player: &mut Player, db: &mut Db) {
         .filter(|i| i.is_usable())
         .collect();
     if usable.is_empty() {
+        ui::pause();
         return;
     }
 
@@ -110,9 +209,11 @@ fn inventory_menu(player: &mut Player, db: &mut Db) {
         }
         Err(e) => println!("{e}"),
     }
+    ui::pause();
 }
 
 fn equipment_menu(player: &mut Player, db: &mut Db) {
+    ui::clear();
     ui::boxed(
         "EQUIPMENT",
         &[
@@ -148,6 +249,7 @@ fn equipment_menu(player: &mut Player, db: &mut Db) {
                 .collect();
             if gear.is_empty() {
                 println!("Ga ada equipment di inventory.");
+                ui::pause();
                 return;
             }
             for (i, item) in gear.iter().enumerate() {
@@ -170,6 +272,7 @@ fn equipment_menu(player: &mut Player, db: &mut Db) {
         }
         Err(e) => println!("{e}"),
     }
+    ui::pause();
 }
 
 fn shop_menu(player: &mut Player, db: &mut Db) {
@@ -178,8 +281,10 @@ fn shop_menu(player: &mut Player, db: &mut Db) {
         .copied()
         .filter(|i| i.is_purchasable())
         .collect();
+    let mut notice = String::new();
 
     loop {
+        ui::clear();
         let mut lines = vec![
             format!("Gold kamu: {}", player.inventory.gold()),
             String::new(),
@@ -197,23 +302,28 @@ fn shop_menu(player: &mut Player, db: &mut Db) {
         lines.push("b. Beli   s. Jual   0. Kembali".to_string());
         ui::boxed("TOKO", &lines);
 
+        if !notice.is_empty() {
+            println!("{notice}");
+            notice.clear();
+        }
+
         match ui::read_input().as_str() {
             "b" => {
                 println!("Nomor item:");
                 let Some(i) = pick(stock.len()) else {
-                    println!("Pilihan tidak valid.");
+                    notice = "Pilihan tidak valid.".to_string();
                     continue;
                 };
                 let Some(qty) = read_qty() else {
-                    println!("Jumlah tidak valid.");
+                    notice = "Jumlah tidak valid.".to_string();
                     continue;
                 };
                 match player.inventory.buy(stock[i], qty) {
                     Ok(()) => {
-                        println!("Berhasil beli {} x{}", stock[i].name(), qty);
+                        notice = format!("Berhasil beli {} x{}", stock[i].name(), qty);
                         save(db, player);
                     }
-                    Err(e) => println!("{e}"),
+                    Err(e) => notice = e.to_string(),
                 }
             }
             "s" => {
@@ -225,7 +335,7 @@ fn shop_menu(player: &mut Player, db: &mut Db) {
                     .filter(|i| i.is_purchasable())
                     .collect();
                 if bag.is_empty() {
-                    println!("Ga ada yang bisa dijual.");
+                    notice = "Ga ada yang bisa dijual.".to_string();
                     continue;
                 }
                 for (i, item) in bag.iter().enumerate() {
@@ -238,23 +348,23 @@ fn shop_menu(player: &mut Player, db: &mut Db) {
                     );
                 }
                 let Some(i) = pick(bag.len()) else {
-                    println!("Pilihan tidak valid.");
+                    notice = "Pilihan tidak valid.".to_string();
                     continue;
                 };
                 let Some(qty) = read_qty() else {
-                    println!("Jumlah tidak valid.");
+                    notice = "Jumlah tidak valid.".to_string();
                     continue;
                 };
                 match player.inventory.sell(bag[i], qty) {
                     Ok(()) => {
-                        println!("Berhasil jual {} x{}", bag[i].name(), qty);
+                        notice = format!("Berhasil jual {} x{}", bag[i].name(), qty);
                         save(db, player);
                     }
-                    Err(e) => println!("{e}"),
+                    Err(e) => notice = e.to_string(),
                 }
             }
             "0" => break,
-            _ => println!("Pilihan tidak valid."),
+            _ => notice = "Pilihan tidak valid.".to_string(),
         }
     }
 }

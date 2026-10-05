@@ -98,6 +98,14 @@ impl Db {
         tx.commit()
     }
 
+    pub fn list_players(&self) -> Result<Vec<(String, u32)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT name, level FROM players ORDER BY name COLLATE NOCASE")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        rows.collect()
+    }
+
     pub fn load_player(&self, name: &str) -> Result<Option<Player>> {
         let row = self
             .conn
