@@ -1,4 +1,5 @@
 use crate::{
+    equipment::{Equipment, Slot},
     inventory::{Effect, Inventory, Item},
     statistic::Stat,
 };
@@ -31,6 +32,7 @@ pub struct Player {
     pub exp: u32,
     pub inventory: Inventory,
     pub statistic: Stat,
+    pub equipment: Equipment,
 }
 
 impl Player {
@@ -41,6 +43,7 @@ impl Player {
             exp: 0,
             inventory: Inventory::new(),
             statistic: Stat::new(),
+            equipment: Equipment::default(),
         }
     }
 
@@ -109,5 +112,40 @@ impl Player {
             .map_err(|e| e.to_string())?;
 
         Ok(msg)
+    }
+
+    pub fn total_attack(&self) -> u32 {
+        self.statistic.attack + self.equipment.attack_bonus()
+    }
+
+    pub fn total_defense(&self) -> u32 {
+        self.statistic.defense + self.equipment.defense_bonus()
+    }
+
+    pub fn equip(&mut self, item: Item) -> Result<String, String> {
+        let gear = item
+            .gear()
+            .ok_or_else(|| format!("{} tida bisa dipakai sebagai equipment", item.name()))?;
+
+        self.inventory
+            .remove_item(item, 1)
+            .map_err(|e| e.to_string())?;
+
+        let old = self.equipment.slot_mut(gear.slot()).replace(item);
+        if let Some(old) = old {
+            self.inventory.add_item(old, 1);
+        }
+
+        Ok(format!("{} dipasang.", item.name()))
+    }
+
+    pub fn unequip(&mut self, slot: Slot) -> Result<String, String> {
+        let item = self
+            .equipment
+            .slot_mut(slot)
+            .take()
+            .ok_or_else(|| "Slot sudah kosong".to_string())?;
+        self.inventory.add_item(item, 1);
+        Ok(format!("{} dilepas", item.name()))
     }
 }

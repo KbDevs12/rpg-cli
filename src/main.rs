@@ -1,4 +1,9 @@
-use rpg_cli::{inventory::Item, player::Player};
+use rpg_cli::{
+    battle,
+    inventory::Item,
+    monster::{Monster, MonsterKind},
+    player::Player,
+};
 
 fn main() {
     let mut p = Player::new("Adit");
@@ -18,5 +23,9 @@ fn main() {
         println!("Gagal: {e}");
     }
 
+    p.inventory.display();
+
+    let kind = MonsterKind::candidates(p.level)[0];
+    battle::run(&mut p, Monster::new(kind));
     p.inventory.display();
 }

@@ -15,7 +15,6 @@ pub enum Gear {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
-    Fist,
     HealthPotion,
     ManaPotion,
     IronSword,
@@ -27,7 +26,6 @@ pub enum Item {
 impl Item {
     pub fn name(&self) -> &'static str {
         match self {
-            Item::Fist => "Fist",
             Item::HealthPotion => "Health Potion",
             Item::ManaPotion => "Mana Potion",
             Item::IronSword => "Iron Sword",
@@ -39,7 +37,6 @@ impl Item {
 
     pub fn key(&self) -> &'static str {
         match self {
-            Item::Fist => "fist",
             Item::HealthPotion => "health_potion",
             Item::ManaPotion => "mana_potion",
             Item::IronSword => "iron_sword",
@@ -51,7 +48,6 @@ impl Item {
 
     pub fn from_key(key: &str) -> Option<Item> {
         match key {
-            "fist" => Some(Item::Fist),
             "health_potion" => Some(Item::HealthPotion),
             "mana_potion" => Some(Item::ManaPotion),
             "iron_sword" => Some(Item::IronSword),
@@ -87,7 +83,6 @@ impl Item {
             Item::WoodenShield => 150,
             Item::Elixir => 100,
             Item::Bread => 25,
-            _ => 0,
         }
     }
 
