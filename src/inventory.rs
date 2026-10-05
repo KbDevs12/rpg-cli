@@ -7,8 +7,15 @@ pub enum Effect {
     RestoreMana(u32),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Gear {
+    Weapon(u32),
+    Shield(u32),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
+    Fist,
     HealthPotion,
     ManaPotion,
     IronSword,
@@ -20,12 +27,46 @@ pub enum Item {
 impl Item {
     pub fn name(&self) -> &'static str {
         match self {
+            Item::Fist => "Fist",
             Item::HealthPotion => "Health Potion",
             Item::ManaPotion => "Mana Potion",
             Item::IronSword => "Iron Sword",
             Item::WoodenShield => "Iron Shield",
             Item::Elixir => "Elixir",
             Item::Bread => "Bread",
+        }
+    }
+
+    pub fn key(&self) -> &'static str {
+        match self {
+            Item::Fist => "fist",
+            Item::HealthPotion => "health_potion",
+            Item::ManaPotion => "mana_potion",
+            Item::IronSword => "iron_sword",
+            Item::WoodenShield => "wooden_shield",
+            Item::Elixir => "elixir",
+            Item::Bread => "bread",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Item> {
+        match key {
+            "fist" => Some(Item::Fist),
+            "health_potion" => Some(Item::HealthPotion),
+            "mana_potion" => Some(Item::ManaPotion),
+            "iron_sword" => Some(Item::IronSword),
+            "wooden_shield" => Some(Item::WoodenShield),
+            "elixir" => Some(Item::Elixir),
+            "bread" => Some(Item::Bread),
+            _ => None,
+        }
+    }
+
+    pub fn gear(&self) -> Option<Gear> {
+        match self {
+            Item::IronSword => Some(Gear::Weapon(10)),
+            Item::WoodenShield => Some(Gear::Shield(5)),
+            _ => None,
         }
     }
 
@@ -46,6 +87,7 @@ impl Item {
             Item::WoodenShield => 150,
             Item::Elixir => 100,
             Item::Bread => 25,
+            _ => 0,
         }
     }
 
@@ -161,6 +203,16 @@ impl Inventory {
         v.sort_by_key(|(item, _)| item.name());
         v
     }
+
+    // pub fn equip_weapon(&self, item: Item) -> Result<String, String> {
+    //     let w = item.item_stat();
+    //     match w {
+    //         Item::IronSword(n) => {
+
+    //         }
+    //         _ =>{}
+    //     }
+    // }
 
     pub fn display(&self) {
         println!("=== Inventory ===");
