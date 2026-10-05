@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use rpg_cli::{inventory::*, player::*};
+    use rpg_cli::{equipment::Slot, inventory::*, player::*};
 
     #[test]
     fn naik_level_satu_kali() {
@@ -66,5 +66,44 @@ mod tests {
         p.inventory.add_item(Item::IronSword, 1);
         assert!(p.use_item(Item::IronSword, 1).is_err());
         assert_eq!(p.inventory.count(Item::IronSword), 1);
+    }
+
+    #[test]
+    fn default_senjata_fist() {
+        let p = Player::new("Budi");
+        assert_eq!(p.equipment.weapon, Item::Fist);
+        assert_eq!(p.equipment.weapon_name(), "Fist");
+        assert_eq!(p.total_attack(), p.statistic.attack + 1);
+        assert_eq!(p.total_defense(), p.statistic.defense); // tanpa shield bonus 0
+    }
+
+    #[test]
+    fn equip_item_yang_tidak_dimiliki_ditolak() {
+        let mut p = Player::new("Budi");
+        assert!(p.equip(Item::IronSword).is_err());
+        assert_eq!(p.equipment.weapon, Item::Fist);
+    }
+
+    #[test]
+    fn unequip_balik_ke_fist() {
+        let mut p = Player::new("Budi");
+        p.inventory.add_item(Item::IronSword, 1);
+        p.equip(Item::IronSword).unwrap();
+        assert!(p.unequip(Slot::Weapon).is_ok());
+        assert_eq!(p.equipment.weapon, Item::Fist);
+        assert_eq!(p.inventory.count(Item::IronSword), 1);
+        assert_eq!(p.inventory.count(Item::Fist), 0); // Fist ga masuk inventory
+        assert!(p.unequip(Slot::Weapon).is_err()); // Fist ga bisa dilepas
+    }
+
+    #[test]
+    fn equip_shield_menambah_defense() {
+        let mut p = Player::new("Budi");
+        p.inventory.add_item(Item::WoodenShield, 1);
+        assert!(p.equip(Item::WoodenShield).is_ok());
+        assert_eq!(p.total_defense(), p.statistic.defense + 5);
+        assert!(p.unequip(Slot::Shield).is_ok());
+        assert_eq!(p.total_defense(), p.statistic.defense);
+        assert!(p.unequip(Slot::Shield).is_err()); // sudah kosong
     }
 }

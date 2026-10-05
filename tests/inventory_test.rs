@@ -58,4 +58,26 @@ mod tests {
         assert_eq!(inv.gold(), 150);
         assert_eq!(inv.count(Item::IronSword), 0);
     }
+
+    #[test]
+    fn fist_ga_bisa_dibeli_atau_dijual() {
+        let mut inv = Inventory::new();
+        inv.add_gold(1000);
+        assert_eq!(
+            inv.buy(Item::Fist, 1),
+            Err(InventoryError::NotForSale { item: Item::Fist })
+        );
+        assert_eq!(
+            inv.sell(Item::Fist, 1),
+            Err(InventoryError::NotForSale { item: Item::Fist })
+        );
+        assert_eq!(inv.gold(), 1000);
+    }
+
+    #[test]
+    fn add_item_nol_ga_bikin_entri() {
+        let mut inv = Inventory::new();
+        inv.add_item(Item::Bread, 0);
+        assert!(inv.list().is_empty());
+    }
 }

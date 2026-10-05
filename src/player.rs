@@ -125,14 +125,13 @@ impl Player {
     pub fn equip(&mut self, item: Item) -> Result<String, String> {
         let gear = item
             .gear()
-            .ok_or_else(|| format!("{} tida bisa dipakai sebagai equipment", item.name()))?;
+            .ok_or_else(|| format!("{} ga bisa dipasang sebagai equipment", item.name()))?;
 
         self.inventory
             .remove_item(item, 1)
             .map_err(|e| e.to_string())?;
 
-        let old = self.equipment.slot_mut(gear.slot()).replace(item);
-        if let Some(old) = old {
+        if let Some(old) = self.equipment.put_on(item, gear.slot()) {
             self.inventory.add_item(old, 1);
         }
 
@@ -142,10 +141,9 @@ impl Player {
     pub fn unequip(&mut self, slot: Slot) -> Result<String, String> {
         let item = self
             .equipment
-            .slot_mut(slot)
-            .take()
-            .ok_or_else(|| "Slot sudah kosong".to_string())?;
+            .take_off(slot)
+            .ok_or_else(|| "Ga ada yang bisa dilepas".to_string())?;
         self.inventory.add_item(item, 1);
-        Ok(format!("{} dilepas", item.name()))
+        Ok(format!("{} dilepas.", item.name()))
     }
 }

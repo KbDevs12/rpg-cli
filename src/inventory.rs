@@ -15,6 +15,7 @@ pub enum Gear {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
+    Fist,
     HealthPotion,
     ManaPotion,
     IronSword,
@@ -24,12 +25,23 @@ pub enum Item {
 }
 
 impl Item {
+    pub const ALL: [Item; 7] = [
+        Item::Fist,
+        Item::HealthPotion,
+        Item::ManaPotion,
+        Item::IronSword,
+        Item::WoodenShield,
+        Item::Elixir,
+        Item::Bread,
+    ];
+
     pub fn name(&self) -> &'static str {
         match self {
+            Item::Fist => "Fist",
             Item::HealthPotion => "Health Potion",
             Item::ManaPotion => "Mana Potion",
             Item::IronSword => "Iron Sword",
-            Item::WoodenShield => "Iron Shield",
+            Item::WoodenShield => "Wooden Shield",
             Item::Elixir => "Elixir",
             Item::Bread => "Bread",
         }
@@ -37,6 +49,7 @@ impl Item {
 
     pub fn key(&self) -> &'static str {
         match self {
+            Item::Fist => "fist",
             Item::HealthPotion => "health_potion",
             Item::ManaPotion => "mana_potion",
             Item::IronSword => "iron_sword",
@@ -48,6 +61,7 @@ impl Item {
 
     pub fn from_key(key: &str) -> Option<Item> {
         match key {
+            "fist" => Some(Item::Fist),
             "health_potion" => Some(Item::HealthPotion),
             "mana_potion" => Some(Item::ManaPotion),
             "iron_sword" => Some(Item::IronSword),
@@ -60,6 +74,7 @@ impl Item {
 
     pub fn gear(&self) -> Option<Gear> {
         match self {
+            Item::Fist => Some(Gear::Weapon(1)),
             Item::IronSword => Some(Gear::Weapon(10)),
             Item::WoodenShield => Some(Gear::Shield(5)),
             _ => None,
@@ -77,6 +92,7 @@ impl Item {
 
     pub fn price(&self) -> u32 {
         match self {
+            Item::Fist => 0,
             Item::HealthPotion => 50,
             Item::ManaPotion => 60,
             Item::IronSword => 300,
@@ -90,6 +106,10 @@ impl Item {
         self.price() / 2
     }
 
+    pub fn is_purchasable(&self) -> bool {
+        self.price() > 0
+    }
+
     pub fn is_usable(&self) -> bool {
         self.effect().is_some()
     }
@@ -99,6 +119,7 @@ impl Item {
 pub enum InventoryError {
     NotEnoughGold { needed: u32, have: u32 },
     NotEnoughItem { item: Item, needed: u32, have: u32 },
+    NotForSale { item: Item },
 }
 
 impl fmt::Display for InventoryError {
@@ -117,6 +138,10 @@ impl fmt::Display for InventoryError {
                     "{} kurang bro, butuh {needed} padahal lu cuma ada {have}",
                     item.name()
                 )
+            }
+
+            InventoryError::NotForSale { item } => {
+                write!(f, "{} ga dijual di toko", item.name())
             }
         }
     }
@@ -157,7 +182,11 @@ impl Inventory {
     }
 
     pub fn add_item(&mut self, item: Item, qty: u32) {
-        *self.items.entry(item).or_insert(0) += qty
+        if qty == 0 {
+            return;
+        }
+        let slot = self.items.entry(item).or_insert(0);
+        *slot = slot.saturating_add(qty);
     }
 
     pub fn remove_item(&mut self, item: Item, qty: u32) -> Result<(), InventoryError> {
@@ -182,14 +211,20 @@ impl Inventory {
     }
 
     pub fn buy(&mut self, item: Item, qty: u32) -> Result<(), InventoryError> {
+        if !item.is_purchasable() {
+            return Err(InventoryError::NotForSale { item });
+        }
         self.spend_gold(item.price().saturating_mul(qty))?;
         self.add_item(item, qty);
         Ok(())
     }
 
     pub fn sell(&mut self, item: Item, qty: u32) -> Result<(), InventoryError> {
+        if !item.is_purchasable() {
+            return Err(InventoryError::NotForSale { item });
+        }
         self.remove_item(item, qty)?;
-        self.add_gold(item.sell_price() * qty);
+        self.add_gold(item.sell_price().saturating_mul(qty));
         Ok(())
     }
 
@@ -197,26 +232,5 @@ impl Inventory {
         let mut v: Vec<(Item, u32)> = self.items.iter().map(|(i, q)| (*i, *q)).collect();
         v.sort_by_key(|(item, _)| item.name());
         v
-    }
-
-    // pub fn equip_weapon(&self, item: Item) -> Result<String, String> {
-    //     let w = item.item_stat();
-    //     match w {
-    //         Item::IronSword(n) => {
-
-    //         }
-    //         _ =>{}
-    //     }
-    // }
-
-    pub fn display(&self) {
-        println!("=== Inventory ===");
-        println!("Gold: {}", self.gold);
-        if self.items.is_empty() {
-            println!("(tidak ada item)");
-        }
-        for (item, qty) in self.list() {
-            println!("- {} x{}", item.name(), qty);
-        }
     }
 }
